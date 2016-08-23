@@ -3,6 +3,8 @@ package sample.multinode
 //#package
 
 //#config
+import akka.actor.ActorLogging
+import akka.cluster.singleton.ClusterSingletonProxySettings
 import akka.remote.testkit.MultiNodeConfig
 
 object MultiNodeSampleConfig extends MultiNodeConfig {
@@ -20,9 +22,11 @@ class MultiNodeSampleSpecMultiJvmNode1 extends MultiNodeSample
 class MultiNodeSampleSpecMultiJvmNode2 extends MultiNodeSample
 
 object MultiNodeSample {
-  class Ponger extends Actor {
+  class Ponger extends Actor with ActorLogging {
     def receive = {
-      case "ping" => sender() ! "pong"
+      case _ => {
+        sender() ! "pong"
+      }
     }
   }
 }
@@ -45,7 +49,7 @@ class MultiNodeSample extends MultiNodeSpec(MultiNodeSampleConfig)
       runOn(node1) {
         enterBarrier("deployed")
         val ponger = system.actorSelection(node(node2) / "user" / "ponger")
-        ponger ! "ping"
+        ponger ! ClusterSingletonProxySettings(system)
         import scala.concurrent.duration._
         expectMsg(10.seconds, "pong")
       }
